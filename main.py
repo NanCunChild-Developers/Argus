@@ -2,7 +2,6 @@ import json
 import pprint
 import socket
 import subprocess
-import threading
 import time
 import netifaces
 import uuid
@@ -20,6 +19,14 @@ server_command_port = 1818
 server_inform_port = 1819
 
 client_id = ""
+# 目前有多个问题亟需解决：
+# 1. 直接操作被控制端窗口属性，网络状态等Python函数操作
+# 2. 传输指令和回显需要加密
+# 3. 部分涉及到程序自身资源调配的指令，需要专门编写
+# TODO: 设计一个自主协议，区分CMD指令，Pthon函数直接调用和程序调配。  因此就需要先抓包，看看数据包情况。
+# 大致设想：
+# {FLAG:ARGUS, SENDER:SERVER, TYPE:CMD_Command, UUID:"", CONTENT:"", VERSION:"", MSG_ID:""}
+# {FLAG:ARGUS, SENDER:CLIENT, TYPE:CMD_Command_Echo, UUID:"", CONTENT:"", VERSION:"", MSG_ID:""}
 
 
 def get_comp_info():
@@ -80,6 +87,25 @@ def get_comp_info():
     # {'Date': '2023-08-05'}]
 
 
+def get_all_windows():
+    window_collection = []
+    all_windows = gw.getAllWindows()
+
+    for window in all_windows:
+        window_info = {
+            "Window title": window.title,
+            "Visibility": window.visible,
+            "Height": window.height,
+            "Width": window.width,
+            "Is Minimized": window.isMinimized,
+            "Is Maximized": window.isMaximized,
+            "Is Active": window.isActive
+        }
+        window_collection.append(window_info)
+
+    return window_collection
+
+
 def generate_uuid():
     # 获取 UUID 文件路径
     uuid_file_path = os.path.join(os.path.expanduser("~"), "Argus_UUID.ini")
@@ -99,25 +125,6 @@ def generate_uuid():
             print("UUID created successfully.")
 
     return cid
-
-
-def get_all_windows():
-    window_collection = []
-    all_windows = gw.getAllWindows()
-
-    for window in all_windows:
-        window_info = {
-            "Window title": window.title,
-            "Visibility": window.visible,
-            "Height": window.height,
-            "Width": window.width,
-            "Is Minimized": window.isMinimized,
-            "Is Maximized": window.isMaximized,
-            "Is Active": window.isActive
-        }
-        window_collection.append(window_info)
-
-    return window_collection
 
 
 def initialize_socket(target_host, target_port):
@@ -274,12 +281,15 @@ if __name__ == "__main__":
     #     # 多线程，将监听端口单独放出，便于管理
     #     get_info_thread.start()
     #     send_info(info_socket, comprehension_info)
-    #     # connect_to_server(server_ip, server_command_port)
-    #     # # # A debug above # # #
+
     #
     # except KeyboardInterrupt:
     #     print("User Ended The Connection.Global.")
     # except Exception as e:
     #     print("Error, code:" + str(e))
+
+    #     # # # Debug Area Below # # #
     print(get_comp_info())
     print(get_all_windows())
+    #     # connect_to_server(server_ip, server_command_port)
+    #     # # # Debug Area Above # # #
